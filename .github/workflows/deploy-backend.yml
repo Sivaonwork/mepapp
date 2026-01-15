@@ -40,19 +40,15 @@ jobs:
           # Find PM2
           PM2_BIN=$(command -v pm2 || which pm2 || find /usr/local/bin /usr/bin /opt -name pm2 -type f 2>/dev/null | head -n 1)
           
-          if [ -z "$PM2_BIN" ]; then
-            echo "PM2 not found in standard paths. Searching HOME..."
-            PM2_BIN=$(find $HOME -name pm2 -type f 2>/dev/null | head -n 1)
+          if [ -n "$PM2_BIN" ]; then
+            echo "Using PM2 at: $PM2_BIN"
+            $PM2_BIN delete mep-backend || true
+            $PM2_BIN start "java -jar -Dserver.port=8085 ~/apps/mep-backend/mep-backend/target/backend-0.0.1-SNAPSHOT.jar" --name mep-backend
+          else
+            echo "PM2 not found. Falling back to nohup."
+            # Kill existing process on port 8085
+            fuser -k 8085/tcp || true
+            sleep 2
+            nohup java -jar -Dserver.port=8085 ~/apps/mep-backend/mep-backend/target/backend-0.0.1-SNAPSHOT.jar > ~/apps/mep-backend/backend.log 2>&1 &
+            echo "Backend started with nohup."
           fi
-          
-          if [ -z "$PM2_BIN" ]; then
-            echo "CRITICAL: PM2 not found. Printing PATH and common dirs:"
-            echo "PATH: $PATH"
-            ls -l /usr/local/bin/pm2 /usr/bin/pm2 2>/dev/null || true
-            PM2_BIN="pm2" # Fallback to hope for the best
-          fi
-          
-          echo "Using PM2 at: $PM2_BIN"
-          
-          $PM2_BIN delete mep-backend || true
-          $PM2_BIN start "java -jar -Dserver.port=8085 ~/apps/mep-backend/mep-backend/target/backend-0.0.1-SNAPSHOT.jar" --name mep-backend
