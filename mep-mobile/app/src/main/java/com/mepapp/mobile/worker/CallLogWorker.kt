@@ -18,7 +18,14 @@ class CallLogWorker(appContext: Context, workerParams: WorkerParameters) :
 
     override suspend fun doWork(): Result {
         return try {
-            val callLogs = getCallLogs()
+            val staffId = try {
+                apiService.getMe().id
+            } catch (e: Exception) {
+                Log.e("CallLogWorker", "Failed to fetch staff ID", e)
+                "00000000-0000-0000-0000-000000000000"
+            }
+
+            val callLogs = getCallLogs(staffId)
             if (callLogs.isNotEmpty()) {
                 apiService.logCalls(callLogs)
                 Log.d("CallLogWorker", "Uploaded ${callLogs.size} call logs")
@@ -30,7 +37,7 @@ class CallLogWorker(appContext: Context, workerParams: WorkerParameters) :
         }
     }
 
-    private fun getCallLogs(): List<CallLogRequest> {
+    private fun getCallLogs(staffId: String): List<CallLogRequest> {
         val list = mutableListOf<CallLogRequest>()
         val projection = arrayOf(
             CallLog.Calls.NUMBER,
@@ -69,13 +76,6 @@ class CallLogWorker(appContext: Context, workerParams: WorkerParameters) :
                 val duration = it.getLong(durationIndex)
                 
                 val isoDate = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).format(Date(date))
-
-                // Get current user if not already fetched
-                val staffId = try {
-                    apiService.getMe().id
-                } catch (e: Exception) {
-                    "00000000-0000-0000-0000-000000000000"
-                }
 
                 list.add(
                     CallLogRequest(

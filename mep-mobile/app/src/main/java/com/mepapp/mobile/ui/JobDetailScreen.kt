@@ -70,7 +70,16 @@ fun JobDetailScreen(jobId: String, onBack: () -> Unit) {
                                         context.startActivity(intent)
 
                                         // 2. Log call to backend
-                                        apiService.logCall(com.mepapp.mobile.network.CallLogRequest(jobId, "STAFF_ID"))
+                                        val me = apiService.getMe()
+                                        apiService.logCall(
+                                            com.mepapp.mobile.network.CallLogRequest(
+                                                jobId = jobId,
+                                                staffId = me.id,
+                                                phoneNumber = "9876543210", // Hardcoded for now in this demo UI
+                                                duration = 0,
+                                                callType = "OUTGOING"
+                                            )
+                                        )
                                     } catch (e: Exception) {
                                         android.widget.Toast.makeText(context, "Failed to log call", android.widget.Toast.LENGTH_SHORT).show()
                                     }
