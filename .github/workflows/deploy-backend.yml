@@ -30,14 +30,29 @@ jobs:
         username: ${{ secrets.BACKEND_SERVER_USER }}
         password: ${{ secrets.BACKEND_SERVER_PASSWORD }}
         script: |
-          # Robust PATH setup
-          export PATH=$PATH:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$HOME/.local/bin:$HOME/bin
-          source ~/.profile || true
-          source ~/.bashrc || true
+          # Try to load environment
+          for f in /etc/profile ~/.profile ~/.bash_profile ~/.bashrc; do
+            [ -f "$f" ] && . "$f" && echo "Sourced $f"
+          done
           
-          # Find pm2 absolute path
-          PM2_BIN=$(which pm2 || find /usr/local/bin /usr/bin $HOME/.npm-global/bin $HOME/.nvm -name pm2 -type f 2>/dev/null | head -n 1)
-          if [ -z "$PM2_BIN" ]; then PM2_BIN="pm2"; fi
+          export PATH=$PATH:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+          
+          # Find PM2
+          PM2_BIN=$(command -v pm2 || which pm2 || find /usr/local/bin /usr/bin /opt -name pm2 -type f 2>/dev/null | head -n 1)
+          
+          if [ -z "$PM2_BIN" ]; then
+            echo "PM2 not found in standard paths. Searching HOME..."
+            PM2_BIN=$(find $HOME -name pm2 -type f 2>/dev/null | head -n 1)
+          fi
+          
+          if [ -z "$PM2_BIN" ]; then
+            echo "CRITICAL: PM2 not found. Printing PATH and common dirs:"
+            echo "PATH: $PATH"
+            ls -l /usr/local/bin/pm2 /usr/bin/pm2 2>/dev/null || true
+            PM2_BIN="pm2" # Fallback to hope for the best
+          fi
+          
+          echo "Using PM2 at: $PM2_BIN"
           
           $PM2_BIN delete mep-backend || true
           $PM2_BIN start "java -jar -Dserver.port=8085 ~/apps/mep-backend/mep-backend/target/backend-0.0.1-SNAPSHOT.jar" --name mep-backend

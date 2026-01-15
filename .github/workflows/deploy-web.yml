@@ -31,21 +31,31 @@ jobs:
         username: ${{ secrets.WEB_SERVER_USER }}
         password: ${{ secrets.WEB_SERVER_PASSWORD }}
         script: |
-          # Robust PATH setup
-          export PATH=$PATH:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$HOME/.local/bin:$HOME/bin
-          source ~/.profile || true
-          source ~/.bashrc || true
+          # Try to load environment
+          for f in /etc/profile ~/.profile ~/.bash_profile ~/.bashrc; do
+            [ -f "$f" ] && . "$f" && echo "Sourced $f"
+          done
+          
+          export PATH=$PATH:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
           
           # Load NVM
           export NVM_DIR="$HOME/.nvm"
-          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
           
-          # Find binaries
-          NPM_BIN=$(which npm || find /usr/local/bin /usr/bin $HOME/.nvm -name npm -type f 2>/dev/null | head -n 1)
-          PM2_BIN=$(which pm2 || find /usr/local/bin /usr/bin $HOME/.nvm -name pm2 -type f 2>/dev/null | head -n 1)
+          # Find Binaries
+          NPM_BIN=$(command -v npm || which npm || find /usr/local/bin /usr/bin $HOME/.nvm -name npm -type f 2>/dev/null | head -n 1 || echo "npm")
+          PM2_BIN=$(command -v pm2 || which pm2 || find /usr/local/bin /usr/bin $HOME/.nvm -name pm2 -type f 2>/dev/null | head -n 1)
           
-          if [ -z "$NPM_BIN" ]; then NPM_BIN="npm"; fi
-          if [ -z "$PM2_BIN" ]; then PM2_BIN="pm2"; fi
+          if [ -z "$PM2_BIN" ] && command -v npx >/dev/null; then
+            echo "PM2 not found. Will attempt to use npx pm2."
+            PM2_BIN="npx pm2"
+          elif [ -z "$PM2_BIN" ]; then
+            echo "PM2 not found and npx not available. Fallback to 'pm2'."
+            PM2_BIN="pm2"
+          fi
+          
+          echo "Using NPM: $NPM_BIN"
+          echo "Using PM2: $PM2_BIN"
           
           cd ~/apps/mep-web/mep-web
           $NPM_BIN install --production
