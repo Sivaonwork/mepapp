@@ -19,7 +19,7 @@ jobs:
       uses: appleboy/scp-action@master
       with:
         host: ${{ secrets.SERVER_IP }}
-        username: ${{ secrets.SERVER_USER }}
+        username: ${{ secrets.BACKEND_SERVER_USER }}
         key: ${{ secrets.SERVER_SSH_KEY }}
         source: "mep-backend/target/*.jar"
         target: "~/apps/mep-backend"
@@ -27,7 +27,7 @@ jobs:
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.SERVER_IP }}
-        username: ${{ secrets.SERVER_USER }}
+        username: ${{ secrets.BACKEND_SERVER_USER }}
         key: ${{ secrets.SERVER_SSH_KEY }}
         script: |
           pm2 delete mep-backend || true
