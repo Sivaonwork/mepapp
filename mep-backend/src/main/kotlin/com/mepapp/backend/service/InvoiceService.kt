@@ -2,6 +2,7 @@ package com.mepapp.backend.service
 
 import com.mepapp.backend.entity.Invoice
 import com.mepapp.backend.entity.Job
+import com.mepapp.backend.entity.JobItem
 import com.mepapp.backend.repository.InvoiceRepository
 import com.mepapp.backend.repository.JobRepository
 import org.springframework.stereotype.Service

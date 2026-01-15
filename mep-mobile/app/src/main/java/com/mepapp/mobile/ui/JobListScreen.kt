@@ -19,39 +19,59 @@ data class MobileJob(val id: String, val customer: String, val service: String, 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JobListScreen(onJobClick: (String) -> Unit) {
-    val jobs = listOf(
-        MobileJob("1", "John Doe", "Electrical Repair", "In Progress"),
-        MobileJob("2", "Sarah Khan", "AC Fix", "Pending"),
-        MobileJob("3", "Mike Ross", "Pipe Leak", "Pending")
-    )
+    var jobs by remember { mutableStateOf<List<com.mepapp.mobile.network.JobResponse>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    
+    val scope = rememberCoroutineScope()
+    val apiService = remember { com.mepapp.mobile.network.NetworkModule.createService<com.mepapp.mobile.network.MepApiService>() }
+
+    LaunchedEffect(Unit) {
+        try {
+            // Replace "STAFF_ID" with actual ID from AuthRepository
+            jobs = apiService.getJobs("STAFF_ID")
+            isLoading = false
+        } catch (e: Exception) {
+            errorMessage = "Failed to load jobs: ${e.message}"
+            isLoading = false
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("My Assigned Jobs", fontWeight = FontWeight.Bold) })
         }
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier.padding(padding).fillMaxSize().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(jobs) { job ->
-                Card(
-                    onClick = { onJobClick(job.id) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B))
+        Box(modifier = Modifier.padding(padding).fillMaxSize()) {
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            } else if (errorMessage != null) {
+                Text(errorMessage!!, modifier = Modifier.align(Alignment.Center), color = MaterialTheme.colorScheme.error)
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                    items(jobs) { job ->
+                        Card(
+                            onClick = { onJobClick(job.id) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B))
                         ) {
-                            Text(job.customer, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
-                            StatusBadge(job.status)
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(
+                                    Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(job.customerName, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+                                    StatusBadge(job.status)
+                                }
+                                Spacer(Modifier.height(4.dp))
+                                Text(job.serviceType, color = Color.Gray)
+                            }
                         }
-                        Spacer(Modifier.height(4.dp))
-                        Text(job.service, color = Color.Gray)
                     }
                 }
             }

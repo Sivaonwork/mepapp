@@ -3,7 +3,9 @@ package com.mepapp.backend.util
 import com.lowagie.text.*
 import com.lowagie.text.pdf.PdfWriter
 import com.mepapp.backend.entity.Invoice
+import com.mepapp.backend.entity.JobItem
 import java.io.ByteArrayOutputStream
+import java.math.BigDecimal
 
 object PdfGenerator {
     fun generateInvoicePdf(invoice: Invoice): ByteArray {

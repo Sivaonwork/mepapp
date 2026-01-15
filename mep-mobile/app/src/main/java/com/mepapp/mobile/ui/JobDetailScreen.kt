@@ -21,8 +21,11 @@ fun JobDetailScreen(jobId: String, onBack: () -> Unit) {
     var qrVerified by remember { mutableStateOf(false) }
     var materialCharge by remember { mutableStateOf("") }
     var serviceCharge by remember { mutableStateOf("") }
+    var isSubmitting by remember { mutableStateOf(false) }
     
     val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = rememberCoroutineScope()
+    val apiService = remember { com.mepapp.mobile.network.NetworkModule.createService<com.mepapp.mobile.network.MepApiService>() }
 
     Scaffold(
         topBar = {
@@ -31,7 +34,7 @@ fun JobDetailScreen(jobId: String, onBack: () -> Unit) {
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         androidx.compose.material3.Icon(
-                            imageVector = androidx.compose.material.icons.Icons.Default.ArrowBack,
+                            imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back"
                         )
                     }
@@ -57,16 +60,25 @@ fun JobDetailScreen(jobId: String, onBack: () -> Unit) {
                         }
                         IconButton(
                             onClick = {
-                                val intent = android.content.Intent(android.content.Intent.ACTION_DIAL).apply {
-                                    data = android.net.Uri.parse("tel:9876543210")
+                                scope.launch {
+                                    try {
+                                        // 1. Launch Dialer
+                                        val intent = android.content.Intent(android.content.Intent.ACTION_DIAL).apply {
+                                            data = android.net.Uri.parse("tel:9876543210")
+                                        }
+                                        context.startActivity(intent)
+
+                                        // 2. Log call to backend
+                                        apiService.logCall(com.mepapp.mobile.network.CallLogRequest(jobId, "STAFF_ID"))
+                                    } catch (e: Exception) {
+                                        android.widget.Toast.makeText(context, "Failed to log call", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
                                 }
-                                context.startActivity(intent)
-                                // Note: In a real app, we'd call the backend to log this call here
                             },
                             colors = IconButtonDefaults.iconButtonColors(containerColor = Color(0xFF38BDF8))
                         ) {
                             androidx.compose.material3.Icon(
-                                imageVector = androidx.compose.material.icons.Icons.Default.Call,
+                                imageVector = Icons.Default.Call,
                                 contentDescription = "Call Customer",
                                 tint = Color.White
                             )
@@ -110,15 +122,30 @@ fun JobDetailScreen(jobId: String, onBack: () -> Unit) {
 
             Button(
                 onClick = {
-                    // In a real app, logic to call backend API:
-                    // /api/invoices/generate/{jobId}?materialCharge={materialCharge}&serviceCharge={serviceCharge}
-                    android.widget.Toast.makeText(context, "Generating Bill for ₹${(materialCharge.toDoubleOrNull() ?: 0.0) + (serviceCharge.toDoubleOrNull() ?: 0.0)}", android.widget.Toast.LENGTH_SHORT).show()
-                    onBack()
+                    isSubmitting = true
+                    scope.launch {
+                        try {
+                            val material = materialCharge.toDoubleOrNull() ?: 0.0
+                            val service = serviceCharge.toDoubleOrNull() ?: 0.0
+                            val response = apiService.generateInvoice(jobId, material, service)
+                            
+                            android.widget.Toast.makeText(context, "Bill Generated: ${response.invoiceNumber} (₹${response.finalAmount})", android.widget.Toast.LENGTH_LONG).show()
+                            onBack()
+                        } catch (e: Exception) {
+                            android.widget.Toast.makeText(context, "Error: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                        } finally {
+                            isSubmitting = false
+                        }
+                    }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = serviceCharge.isNotBlank() && materialCharge.isNotBlank()
+                enabled = !isSubmitting && serviceCharge.isNotBlank() && materialCharge.isNotBlank()
             ) {
-                Text("Complete Job & Generate Bill")
+                if (isSubmitting) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
+                } else {
+                    Text("Complete Job & Generate Bill")
+                }
             }
         }
     }
