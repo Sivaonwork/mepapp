@@ -31,4 +31,4 @@ jobs:
         key: ${{ secrets.SERVER_SSH_KEY }}
         script: |
           pm2 delete mep-backend || true
-          pm2 start "java -jar ~/apps/mep-backend/mep-backend/target/backend-0.0.1-SNAPSHOT.jar" --name mep-backend
+          pm2 start "java -jar -Dserver.port=8085 ~/apps/mep-backend/mep-backend/target/backend-0.0.1-SNAPSHOT.jar" --name mep-backend

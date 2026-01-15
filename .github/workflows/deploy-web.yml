@@ -36,4 +36,4 @@ jobs:
           cd ~/apps/mep-web/mep-web
           npm install --production
           pm2 delete mep-web || true
-          pm2 start npm --name "mep-web" -- start
+          pm2 start npm --name "mep-web" -- start -- -p 3005
