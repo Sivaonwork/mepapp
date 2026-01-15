@@ -30,8 +30,14 @@ jobs:
         username: ${{ secrets.BACKEND_SERVER_USER }}
         password: ${{ secrets.BACKEND_SERVER_PASSWORD }}
         script: |
-          # Source profile to find pm2
+          # Robust PATH setup
+          export PATH=$PATH:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$HOME/.local/bin:$HOME/bin
           source ~/.profile || true
           source ~/.bashrc || true
-          pm2 delete mep-backend || true
-          pm2 start "java -jar -Dserver.port=8085 ~/apps/mep-backend/mep-backend/target/backend-0.0.1-SNAPSHOT.jar" --name mep-backend
+          
+          # Find pm2 absolute path
+          PM2_BIN=$(which pm2 || find /usr/local/bin /usr/bin $HOME/.npm-global/bin $HOME/.nvm -name pm2 -type f 2>/dev/null | head -n 1)
+          if [ -z "$PM2_BIN" ]; then PM2_BIN="pm2"; fi
+          
+          $PM2_BIN delete mep-backend || true
+          $PM2_BIN start "java -jar -Dserver.port=8085 ~/apps/mep-backend/mep-backend/target/backend-0.0.1-SNAPSHOT.jar" --name mep-backend
