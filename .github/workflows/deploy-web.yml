@@ -11,8 +11,6 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: '18'
-        cache: 'npm'
-        cache-dependency-path: mep-web/package-lock.json
     - name: Build Next.js
       run: |
         cd mep-web

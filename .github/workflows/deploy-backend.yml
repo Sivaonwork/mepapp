@@ -14,7 +14,7 @@ jobs:
         distribution: 'temurin'
         cache: maven
     - name: Build with Maven
-      run: mvn -f mep-backend/pom.xml clean package -DskipTests
+      run: mvn -f mep-backend/pom.xml clean package -DskipTests -X
     - name: Deploy to Server
       uses: appleboy/scp-action@master
       with:
